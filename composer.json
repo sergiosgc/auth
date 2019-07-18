@@ -15,6 +15,7 @@
         "php": ">=7.0.0"
     },
     "autoload": {
+        "files": [ "sergiosgc/auth/Exception.php" ],
         "psr-4": {"sergiosgc\\auth\\": "sergiosgc/auth"}
     }
 }
