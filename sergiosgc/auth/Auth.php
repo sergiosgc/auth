@@ -6,6 +6,8 @@ class Auth {
     protected $userObject = null;
     public $token = null;
     public function __construct($credentialCheckCallback, $userIdToObjectCallback, $secretKey, $validitySeconds = 500, $cookieName = 'sergiosgc_auth') {
+        if (!is_callable($credentialCheckCallback)) throw new Exception('Credential check callback is not callable');
+        if (!is_callable($userIdToObjectCallback)) throw new Exception('User ID to Object callback is not callable');
         $this->credentialCheckCallback = $credentialCheckCallback;
         $this->userIdToObjectCallback = $userIdToObjectCallback;
         $this->secretKey = $secretKey;
@@ -15,10 +17,13 @@ class Auth {
     public function login() {
         $userId = call_user_func_array($this->credentialCheckCallback, func_get_args());
         if (is_null($userId) || $userId === false) throw new AuthenticationException('Authentication failure');
+        $this->userId = $userId;
+        $this->userObject = null;
         $this->token = $this->generateToken();
     }
     public function logout() {
-        $this->userId = $this->userObject = $this->token = null;
+        $this->userObject = $this->token = null;
+        $this->userId = false;
     }
     public function resume() {
         if (!is_null($this->userId)) return;
@@ -29,28 +34,22 @@ class Auth {
         if ($this->userId === false) return $this->logout();
         $this->token = $this->generateToken(); // Refresh token
     }
-    public function loggedIn() {
+    public function isLoggedIn() {
         $this->resume();
         return $this->userId !== false;
     }
     public function assertLoggedIn($callbackOnFailure = null) {
-        if ($this->loggedIn()) return;
+        if ($this->isLoggedIn()) return;
         if (!is_null($callbackOnFailure)) call_user_func($callbackOnFailure);
         throw new NotLoggedInException();
     }
     public function sendCookie() {
-        if (is_null($this->token)) {
-            $cookie = [
-                sprintf('%s=', $this->cookieName), 
-                sprintf('Expires=%s', gmdate('D, d M Y H:i:s T', 0))
-            ];
-        } else {
-            $cookie = [];
-            $cookie[] = sprintf('%s=%s', $this->cookieName, (string) $this->token);
-            if ($this->validitySeconds) $cookie[] = sprintf('Expires=%s', gmdate('D, d M Y H:i:s T', time()+$this->validitySeconds));
-            if (array_key_exists('HTTPS', $_SERVER) && $_SERVER['HTTPS'] == 'on') $cookie[] = 'Secure';
-            $cookie[] = 'SameSite: strict';
-        }
+        $cookie = [];
+        $cookie[] = sprintf('%s=%s', $this->cookieName, $this->token ?: '--');
+        if ($this->validitySeconds || is_null($this->token)) $cookie[] = sprintf('Max-Age=%s', is_null($this->token) ? -1 : $this->validitySeconds);
+        if (array_key_exists('HTTPS', $_SERVER) && $_SERVER['HTTPS'] == 'on') $cookie[] = 'Secure';
+        $cookie[] = 'Path=/';
+        $cookie[] = 'SameSite=strict';
         header(sprintf('Set-Cookie: %s', implode('; ', $cookie)));
     }
     public function generateToken() {
@@ -64,7 +63,7 @@ class Auth {
         if ($signature !== hash_hmac('sha256', $payload, $this->secretKey)) return false;
         $payload = base64_decode($payload);
         if (!$payload) return false;
-        $payload = json_decode($payload);
+        $payload = json_decode($payload, true);
         if (!$payload) return false;
         if (!array_key_exists('userid', $payload)) return false;
         return $payload['userid'];
