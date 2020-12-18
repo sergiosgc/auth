@@ -49,6 +49,7 @@ class Auth {
         if ($this->validitySeconds || is_null($this->token)) $cookie[] = sprintf('Max-Age=%s', is_null($this->token) ? -1 : $this->validitySeconds);
         if (array_key_exists('HTTPS', $_SERVER) && $_SERVER['HTTPS'] == 'on') $cookie[] = 'Secure';
         $cookie[] = 'Path=/';
+        $cookie[] = 'Domain=' . $_SERVER['HTTP_HOST'];
         $cookie[] = 'SameSite=strict';
         header(sprintf('Set-Cookie: %s', implode('; ', $cookie)));
     }
