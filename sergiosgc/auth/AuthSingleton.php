@@ -4,7 +4,7 @@ namespace sergiosgc\auth;
 
 
 class AuthSingleton {
-    public static function getAuth() {
+    public static function getAuth() : \sergiosgc\auth\Auth {
         static $singleton = null;
         if (is_null($singleton)) {
             $reflect  = new \ReflectionClass('\sergiosgc\auth\Auth');
