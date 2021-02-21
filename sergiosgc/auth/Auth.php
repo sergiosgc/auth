@@ -27,6 +27,7 @@ class Auth {
     }
     public function resume() {
         if (!is_null($this->userId)) return;
+        if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) $this->login(['username' => $_SERVER['PHP_AUTH_USER'], 'password' => $_SERVER['PHP_AUTH_PW']]);
         if (!$this->token && array_key_exists($this->cookieName, $_COOKIE)) $this->token = $_COOKIE[$this->cookieName];
         if (!$this->token && array_key_exists($this->cookieName, $_REQUEST)) $this->token = $_REQUEST[$this->cookieName];
         if (!$this->token) return $this->logout();
