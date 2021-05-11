@@ -7,8 +7,8 @@ class AuthSingleton {
     public static function getAuth() : \sergiosgc\auth\Auth {
         static $singleton = null;
         if (is_null($singleton)) {
-            $reflect  = new \ReflectionClass('\sergiosgc\auth\Auth');
-            $singleton = $reflect->newInstanceArgs(func_get_args());
+            $args = func_get_args();
+            $singleton = new Auth(...$args);
         }
         return $singleton;
     }
